@@ -1,0 +1,38 @@
+[
+  {
+    "id": "8def8541-ea8f-4148-b188-d479d4cac07b",
+    "fullName": "Sere",
+    "email": "shafitanvir31@gmail.com",
+    "headline": "Sertg",
+    "passwordHash": "08bd30170b372ac45606ffa9c1a4693efd2f529aed428cac654bf6ad98a62da8",
+    "createdAt": "2025-12-24T12:33:47.985Z",
+    "profile": {
+      "workHistory": [
+        {
+          "company": "abcd",
+          "title": "lead",
+          "start": "2025-07",
+          "end": "",
+          "current": true
+        },
+        {
+          "company": "sADF",
+          "title": "FSDGFG",
+          "start": "2025-06",
+          "end": "",
+          "current": true
+        }
+      ],
+      "education": [
+        {
+          "school": "FSDGHFGJH",
+          "degree": "Masters",
+          "field": "CXZFDVBF"
+        }
+      ],
+      "skills": [],
+      "interests": [],
+      "updatedAt": "2025-12-24T12:42:59.975Z"
+    }
+  }
+]
