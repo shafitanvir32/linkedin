@@ -181,6 +181,10 @@
   gap: 14px;
 }
 
+.panel-body.profile {
+  gap: 20px;
+}
+
 .panel-title {
   font-size: 24px;
   font-weight: 800;
@@ -222,6 +226,16 @@
   outline: none;
   border-color: rgba(10, 102, 194, 0.7);
   box-shadow: 0 0 0 4px rgba(10, 102, 194, 0.16);
+}
+
+.field select {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px 14px;
+  color: #f1f5ff;
+  font-size: 15px;
 }
 
 .actions {
@@ -306,6 +320,124 @@ code {
   padding: 2px 6px;
   border-radius: 6px;
   color: #f1f5ff;
+}
+
+.profile .section {
+  display: grid;
+  gap: 12px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  gap: 12px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.section-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.card-block {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  gap: 12px;
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.row.two > .field {
+  flex: 1;
+  min-width: 240px;
+}
+
+.row.three > .field {
+  flex: 1;
+  min-width: 160px;
+}
+
+.row.end {
+  justify-content: flex-end;
+}
+
+.checkbox-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.section.two-col {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.chip-input {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 8px;
+}
+
+.chip-input input {
+  flex: 1;
+  min-width: 180px;
+  border: none;
+  background: transparent;
+  color: #f1f5ff;
+  padding: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(115, 223, 231, 0.12);
+  color: #c8f6ff;
+  border-radius: 999px;
+  padding: 8px 12px;
+  border: 1px solid rgba(115, 223, 231, 0.25);
+}
+
+.chip button {
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+}
+
+.chip.ghost {
+  background: rgba(255, 255, 255, 0.06);
+  color: #dbe7ff;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.chip.ghost.warn {
+  color: #ffcdd2;
+  border-color: rgba(255, 99, 132, 0.4);
+}
+
+.microcopy {
+  color: #7f92b5;
+  margin: 4px 0 0;
+  font-size: 13px;
 }
 
 @media (max-width: 960px) {

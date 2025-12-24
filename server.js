@@ -152,6 +152,36 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  if (req.url === '/api/update-profile' && req.method === 'POST') {
+    try {
+      const { email, workHistory = [], education = [], skills = [], interests = [] } =
+        await parseBody(req)
+      if (!email) {
+        return send(res, 400, { message: 'Email is required for profile updates.' })
+      }
+      const normalizedEmail = email.trim().toLowerCase()
+      const users = readUsers()
+      const idx = users.findIndex((entry) => entry.email === normalizedEmail)
+      if (idx === -1) {
+        return send(res, 404, { message: 'User not found. Sign in again.' })
+      }
+
+      users[idx].profile = {
+        workHistory,
+        education,
+        skills,
+        interests,
+        updatedAt: new Date().toISOString(),
+      }
+      writeUsers(users)
+
+      return send(res, 200, { message: 'Profile updated successfully.' })
+    } catch (error) {
+      console.error('Update profile error', error)
+      return send(res, 400, { message: 'Invalid profile payload.' })
+    }
+  }
+
   return send(res, 404, { message: 'Route not found.' })
 })
 
