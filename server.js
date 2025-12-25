@@ -1,37 +1,34 @@
+﻿import dotenv from 'dotenv'
+
+dotenv.config({ path: '.env.local' })
+
 import http from 'node:http'
-import fs from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import crypto from 'node:crypto'
+import mysql from 'mysql2/promise'
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-
-const DATA_DIR = join(__dirname, 'server-data')
-const USERS_FILE = join(DATA_DIR, 'users.json')
 const PORT = process.env.PORT || 4000
+const DATABASE_URL = process.env.SINGLESTORE_URL
 
-const ensureStorage = () => {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true })
-  }
-  if (!fs.existsSync(USERS_FILE)) {
-    fs.writeFileSync(USERS_FILE, '[]', 'utf8')
-  }
+if (!DATABASE_URL) {
+  throw new Error('Missing SINGLESTORE_URL in environment.')
 }
 
-const readUsers = () => {
-  try {
-    const raw = fs.readFileSync(USERS_FILE, 'utf8')
-    return raw ? JSON.parse(raw) : []
-  } catch (error) {
-    console.error('Failed to read users file', error)
-    return []
-  }
-}
+const pool = mysql.createPool(DATABASE_URL)
 
-const writeUsers = (users) => {
-  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), 'utf8')
+const ensureSchema = async () => {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id CHAR(36) NOT NULL,
+      email VARCHAR(255) NOT NULL,
+      fullName VARCHAR(255) NOT NULL,
+      headline VARCHAR(255) NOT NULL DEFAULT '',
+      passwordHash CHAR(64) NOT NULL,
+      profile JSON NULL,
+      createdAt DATETIME NOT NULL,
+      updatedAt DATETIME NULL,
+      PRIMARY KEY (email)
+    )
+  `)
 }
 
 const hashPassword = (value) =>
@@ -67,7 +64,19 @@ const parseBody = (req) =>
     })
   })
 
-ensureStorage()
+const parseProfile = (value) => {
+  if (!value) {
+    return { workHistory: [], education: [], skills: [], interests: [] }
+  }
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value)
+    } catch {
+      return { workHistory: [], education: [], skills: [], interests: [] }
+    }
+  }
+  return value
+}
 
 const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') {
@@ -86,35 +95,43 @@ const server = http.createServer(async (req, res) => {
       }
 
       const normalizedEmail = email.trim().toLowerCase()
-      const users = readUsers()
-      const exists = users.find((user) => user.email === normalizedEmail)
-      if (exists) {
+      const [rows] = await pool.query(
+        'SELECT email FROM users WHERE email = ? LIMIT 1',
+        [normalizedEmail],
+      )
+      if (rows.length) {
         return send(res, 409, { message: 'Account already exists. Try signing in.' })
       }
 
-      const newUser = {
-        id: crypto.randomUUID(),
-        fullName: fullName.trim(),
-        email: normalizedEmail,
-        headline: headline.trim(),
-        passwordHash: hashPassword(password),
-        profile: {
-          workHistory: [],
-          education: [],
-          skills: [],
-          interests: [],
-        },
-        createdAt: new Date().toISOString(),
+      const now = new Date()
+      const profile = {
+        workHistory: [],
+        education: [],
+        skills: [],
+        interests: [],
       }
+      await pool.query(
+        `INSERT INTO users (id, email, fullName, headline, passwordHash, profile, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        ,
+        [
+          crypto.randomUUID(),
+          normalizedEmail,
+          fullName.trim(),
+          headline.trim(),
+          hashPassword(password),
+          JSON.stringify(profile),
+          now,
+          now,
+        ],
+      )
 
-      writeUsers([...users, newUser])
       return send(res, 201, {
         message: 'Account created. Welcome to LINKEDIN.',
         profile: {
-          id: newUser.id,
-          fullName: newUser.fullName,
-          email: newUser.email,
-          headline: newUser.headline,
+          fullName: fullName.trim(),
+          email: normalizedEmail,
+          headline: headline.trim(),
         },
       })
     } catch (error) {
@@ -129,9 +146,17 @@ const server = http.createServer(async (req, res) => {
       if (!email || !password) {
         return send(res, 400, { message: 'Email and password are required.' })
       }
+
       const normalizedEmail = email.trim().toLowerCase()
-      const users = readUsers()
-      const user = users.find((entry) => entry.email === normalizedEmail)
+      const [rows] = await pool.query(
+        'SELECT id, email, fullName, headline, passwordHash, profile FROM users WHERE email = ? LIMIT 1',
+        [normalizedEmail],
+      )
+      if (!rows.length) {
+        return send(res, 401, { message: 'Invalid credentials. Please try again.' })
+      }
+
+      const user = rows[0]
       if (!user || user.passwordHash !== hashPassword(password)) {
         return send(res, 401, { message: 'Invalid credentials. Please try again.' })
       }
@@ -151,13 +176,7 @@ const server = http.createServer(async (req, res) => {
           email: user.email,
           headline: user.headline,
         },
-        profileData:
-          user.profile || {
-            workHistory: [],
-            education: [],
-            skills: [],
-            interests: [],
-          },
+        profileData: parseProfile(user.profile),
       })
     } catch (error) {
       console.error('Signin error', error)
@@ -172,21 +191,28 @@ const server = http.createServer(async (req, res) => {
       if (!email) {
         return send(res, 400, { message: 'Email is required for profile updates.' })
       }
-      const normalizedEmail = email.trim().toLowerCase()
-      const users = readUsers()
-      const idx = users.findIndex((entry) => entry.email === normalizedEmail)
-      if (idx === -1) {
-        return send(res, 404, { message: 'User not found. Sign in again.' })
-      }
 
-      users[idx].profile = {
+      const normalizedEmail = email.trim().toLowerCase()
+      const profile = {
         workHistory,
         education,
         skills,
         interests,
         updatedAt: new Date().toISOString(),
       }
-      writeUsers(users)
+
+      const [rows] = await pool.query(
+        'SELECT email FROM users WHERE email = ? LIMIT 1',
+        [normalizedEmail],
+      )
+      if (!rows.length) {
+        return send(res, 404, { message: 'User not found. Sign in again.' })
+      }
+
+      await pool.query(
+        'UPDATE users SET profile = ?, updatedAt = ? WHERE email = ?',
+        [JSON.stringify(profile), new Date(), normalizedEmail],
+      )
 
       return send(res, 200, { message: 'Profile updated successfully.' })
     } catch (error) {
@@ -195,9 +221,38 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  if (req.url?.startsWith('/api/profile') && req.method === 'GET') {
+    const url = new URL(req.url, `http://localhost:${PORT}`)
+    const email = url.searchParams.get('email')
+    if (!email) {
+      return send(res, 400, { message: 'Email is required.' })
+    }
+    const normalizedEmail = email.trim().toLowerCase()
+    try {
+      const [rows] = await pool.query(
+        'SELECT profile FROM users WHERE email = ? LIMIT 1',
+        [normalizedEmail],
+      )
+      if (!rows.length) {
+        return send(res, 404, { message: 'Profile not found.' })
+      }
+      return send(res, 200, { profileData: parseProfile(rows[0].profile) })
+    } catch (error) {
+      console.error('Profile read error', error)
+      return send(res, 500, { message: 'Failed to read profile.' })
+    }
+  }
+
   return send(res, 404, { message: 'Route not found.' })
 })
 
-server.listen(PORT, () => {
-  console.log(`LINKEDIN auth backend listening on http://localhost:${PORT}`)
-})
+ensureSchema()
+  .then(() => {
+    server.listen(PORT, () => {
+      console.log(`LINKEDIN auth backend listening on http://localhost:${PORT}`)
+    })
+  })
+  .catch((error) => {
+    console.error('Failed to initialize database', error)
+    process.exit(1)
+  })

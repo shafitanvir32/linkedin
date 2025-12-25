@@ -11,6 +11,8 @@
     "server": "node server.js"
   },
   "dependencies": {
+    "dotenv": "^17.2.3",
+    "mysql2": "^3.11.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
