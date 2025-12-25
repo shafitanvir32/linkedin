@@ -1,10 +1,7 @@
-﻿import dotenv from 'dotenv'
-
-dotenv.config({ path: '.env.local' })
-
-import http from 'node:http'
+﻿import http from 'node:http'
 import crypto from 'node:crypto'
 import mysql from 'mysql2/promise'
+import 'dotenv/config'
 
 const PORT = process.env.PORT || 4000
 const DATABASE_URL = process.env.SINGLESTORE_URL
@@ -26,7 +23,8 @@ const ensureSchema = async () => {
       profile JSON NULL,
       createdAt DATETIME NOT NULL,
       updatedAt DATETIME NULL,
-      PRIMARY KEY (email)
+      PRIMARY KEY (email),
+      UNIQUE KEY (id)
     )
   `)
 }
