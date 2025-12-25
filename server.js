@@ -1,7 +1,9 @@
-﻿import http from 'node:http'
+﻿import dotenv from 'dotenv'
+import http from 'node:http'
 import crypto from 'node:crypto'
 import mysql from 'mysql2/promise'
-import 'dotenv/config'
+
+dotenv.config({ path: '.env.local' })
 
 const PORT = process.env.PORT || 4000
 const DATABASE_URL = process.env.SINGLESTORE_URL
@@ -23,8 +25,7 @@ const ensureSchema = async () => {
       profile JSON NULL,
       createdAt DATETIME NOT NULL,
       updatedAt DATETIME NULL,
-      PRIMARY KEY (email),
-      UNIQUE KEY (id)
+      PRIMARY KEY (email)
     )
   `)
 }
@@ -110,8 +111,7 @@ const server = http.createServer(async (req, res) => {
       }
       await pool.query(
         `INSERT INTO users (id, email, fullName, headline, passwordHash, profile, createdAt, updatedAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-        ,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           crypto.randomUUID(),
           normalizedEmail,
