@@ -10,6 +10,13 @@ const starterForm = {
   headline: '',
 }
 
+const emptyProfile = {
+  workHistory: [{ company: '', title: '', start: '', end: '', current: false }],
+  education: [{ school: '', degree: 'Bachelors', field: '' }],
+  skills: [],
+  interests: [],
+}
+
 const highlights = [
   'Tailored feed to showcase your professional story.',
   'Chat-ready messaging that stays in sync across devices.',
@@ -121,6 +128,19 @@ function App() {
         type: 'success',
         message: data?.message || 'You are in. Redirecting...',
       })
+      const profileData = data?.profileData || {}
+      setWorkHistory(
+        profileData.workHistory?.length
+          ? profileData.workHistory
+          : emptyProfile.workHistory,
+      )
+      setEducation(
+        profileData.education?.length
+          ? profileData.education
+          : emptyProfile.education,
+      )
+      setSkills(profileData.skills || emptyProfile.skills)
+      setInterests(profileData.interests || emptyProfile.interests)
       setView('profile')
       setProfileStatus({
         type: 'idle',
@@ -199,6 +219,12 @@ function App() {
     setInput('')
   }
 
+  const mergeTagInput = (list, value) => {
+    const trimmed = value.trim()
+    if (!trimmed) return list
+    return list.includes(trimmed) ? list : [...list, trimmed]
+  }
+
   const removeTag = (value, setList) => {
     setList((current) => current.filter((item) => item !== value))
   }
@@ -217,12 +243,20 @@ function App() {
     }
     setProfileStatus({ type: 'pending', message: 'Saving your profile...' })
 
+    const cleanedSkills = mergeTagInput(skills, skillInput)
+    const cleanedInterests = mergeTagInput(interests, interestInput)
+
+    setSkills(cleanedSkills)
+    setInterests(cleanedInterests)
+    setSkillInput('')
+    setInterestInput('')
+
     const payload = {
       email: userEmail,
       workHistory,
       education,
-      skills,
-      interests,
+      skills: cleanedSkills,
+      interests: cleanedInterests,
     }
 
     try {
@@ -549,6 +583,9 @@ function App() {
                         placeholder="React, Product Strategy, Python"
                         value={skillInput}
                         onChange={(e) => setSkillInput(e.target.value)}
+                        onBlur={() =>
+                          addTag(skillInput, skills, setSkills, setSkillInput)
+                        }
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.preventDefault()
@@ -579,6 +616,9 @@ function App() {
                         placeholder="Open Source, AI, Remote Work"
                         value={interestInput}
                         onChange={(e) => setInterestInput(e.target.value)}
+                        onBlur={() =>
+                          addTag(interestInput, interests, setInterests, setInterestInput)
+                        }
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.preventDefault()

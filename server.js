@@ -98,6 +98,12 @@ const server = http.createServer(async (req, res) => {
         email: normalizedEmail,
         headline: headline.trim(),
         passwordHash: hashPassword(password),
+        profile: {
+          workHistory: [],
+          education: [],
+          skills: [],
+          interests: [],
+        },
         createdAt: new Date().toISOString(),
       }
 
@@ -145,6 +151,13 @@ const server = http.createServer(async (req, res) => {
           email: user.email,
           headline: user.headline,
         },
+        profileData:
+          user.profile || {
+            workHistory: [],
+            education: [],
+            skills: [],
+            interests: [],
+          },
       })
     } catch (error) {
       console.error('Signin error', error)
